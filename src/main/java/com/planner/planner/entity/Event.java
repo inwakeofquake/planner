@@ -2,7 +2,6 @@ package com.planner.planner.entity;
 
 import com.planner.planner.enums.Coverage;
 import com.planner.planner.enums.Significance;
-import com.planner.planner.user.User;
 import jakarta.persistence.*;
 
 import lombok.*;
@@ -15,8 +14,7 @@ import java.time.LocalDateTime;
 
 
 @Entity
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString

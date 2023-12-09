@@ -1,16 +1,12 @@
-package com.planner.planner.user;
+package com.planner.planner.entity;
 
 import com.planner.planner.enums.UserOrigin;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Entity
+@Data
 @Table(name = "users")
-@Getter
-@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class User {
