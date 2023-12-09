@@ -1,16 +1,16 @@
 package com.planner.planner.service;
 
-import com.itextpdf.io.source.ByteArrayOutputStream;
-import com.itextpdf.kernel.pdf.PdfDocument;
-import com.itextpdf.kernel.pdf.PdfWriter;
-import com.itextpdf.layout.Document;
-import com.itextpdf.layout.element.Paragraph;
-import com.itextpdf.layout.property.TextAlignment;
+import com.itextpdf.text.Document;
+import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.pdf.PdfWriter;
 import com.planner.planner.entity.Event;
 import com.planner.planner.repository.EventRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -55,32 +55,28 @@ public class EventService {
         return today.with(DayOfWeek.SUNDAY).atTime(23, 59, 59);
     }
 
-    public byte[] getEventsPdf(LocalDate startDate, LocalDate endDate) {
+    public byte[] getEventsPdf(LocalDate startDate, LocalDate endDate) throws IOException {
         List<Event> events = eventRepository.findByEventDateBetween(
                 startDate.atStartOfDay(), endDate.atTime(23, 59, 59));
         return generatePdfFromEvents(events);
     }
 
-    private byte[] generatePdfFromEvents(List<Event> events) {
+    private byte[] generatePdfFromEvents(List<Event> events) throws IOException {
+        Document document = new Document();
         try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
-            PdfWriter writer = new PdfWriter(byteArrayOutputStream);
-            PdfDocument pdf = new PdfDocument(writer);
-            Document document = new Document(pdf);
+            PdfWriter.getInstance(document, byteArrayOutputStream);
+            document.open();
 
             for (Event event : events) {
-                document.add(new Paragraph("Event Title: " + event.getTitle())
-                        .setTextAlignment(TextAlignment.LEFT));
-                document.add(new Paragraph("Description: " + event.getDescription())
-                        .setTextAlignment(TextAlignment.LEFT));
-                document.add(new Paragraph("Date: " + event.getEventDate())
-                        .setTextAlignment(TextAlignment.LEFT));
+                document.add(new Paragraph("Event Title: " + event.getTitle()));
+                document.add(new Paragraph("Description: " + event.getDescription()));
+                document.add(new Paragraph("Date: " + event.getEventDate()));
                 document.add(new Paragraph("\n")); // Adds a space between events
             }
 
             document.close();
-
             return byteArrayOutputStream.toByteArray();
-        } catch (Exception e) {
+        } catch (DocumentException e) {
             throw new RuntimeException("Error in PDF generation", e);
         }
     }
