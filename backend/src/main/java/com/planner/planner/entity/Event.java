@@ -9,6 +9,7 @@ import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 
 import javax.validation.constraints.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Document(collection = "events")
@@ -32,7 +33,7 @@ public class Event {
 
     @NotNull(message = "Event date is required")
     @Future(message = "Event date must be in the future")
-    private LocalDateTime eventDate;
+    private LocalDate eventDate;
 
     @NotBlank(message = "Title is required")
     @Size(min = 5, max = 100, message = "Title must be between 5 and 100 characters")

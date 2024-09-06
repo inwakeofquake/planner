@@ -4,6 +4,8 @@ import com.planner.planner.entity.Event;
 import com.planner.planner.enums.Location;
 import com.planner.planner.exception.ResourceNotFoundException;
 import com.planner.planner.service.EventService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -17,6 +19,8 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/events")
 public class EventController {
+
+    private static final Logger logger = LoggerFactory.getLogger(EventService.class);
 
     private final EventService eventService;
 
@@ -38,9 +42,16 @@ public class EventController {
     }
 
     @PostMapping
-    public ResponseEntity<Event> createEvent(@Valid @RequestBody Event event) {
-        Event createdEvent = eventService.createEvent(event);
-        return new ResponseEntity<>(createdEvent, HttpStatus.CREATED);
+    public ResponseEntity<?> createEvent(@Valid @RequestBody Event event) {
+        logger.info("Attempting to create event: {}", event);
+        try {
+            Event createdEvent = eventService.createEvent(event);
+            logger.info("Event created successfully: {}", createdEvent);
+            return new ResponseEntity<>(createdEvent, HttpStatus.CREATED);
+        } catch (Exception e) {
+            logger.error("Error creating event", e);
+            return new ResponseEntity<>("Error creating event: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     @PutMapping("/{id}")
