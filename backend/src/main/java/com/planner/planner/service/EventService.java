@@ -1,83 +1,96 @@
 package com.planner.planner.service;
 
-import com.itextpdf.text.Document;
-import com.itextpdf.text.DocumentException;
-import com.itextpdf.text.Paragraph;
-import com.itextpdf.text.pdf.PdfWriter;
 import com.planner.planner.entity.Event;
+import com.planner.planner.enums.Location;
+import com.planner.planner.exception.ResourceNotFoundException;
 import com.planner.planner.repository.EventRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.time.DayOfWeek;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class EventService {
 
+    private static final Logger logger = LoggerFactory.getLogger(EventService.class);
+
+    private final EventRepository eventRepository;
+
     @Autowired
-    private EventRepository eventRepository;
+    public EventService(EventRepository eventRepository) {
+        this.eventRepository = eventRepository;
+    }
+
+    public List<Event> getAllEvents() {
+        logger.info("Fetching all events");
+        return eventRepository.findAll();
+    }
+
+    public Optional<Event> getEventById(String id) {
+        logger.info("Fetching event with id: {}", id);
+        return eventRepository.findById(id);
+    }
 
     public Event createEvent(Event event) {
-        return eventRepository.save(event);
+        logger.info("Creating new event: {}", event);
+        event.setPublishedOn(LocalDateTime.now());
+        Event savedEvent = eventRepository.save(event);
+        logger.info("Created new event with id: {}", savedEvent.getId());
+        return savedEvent;
     }
 
-    public Event updateEvent(Long id, Event updatedEvent) {
-        // Ensure the event exists and update it
+    public Event updateEvent(String id, Event eventDetails) {
+        logger.info("Updating event with id: {}", id);
         return eventRepository.findById(id)
-                .map(event -> {
-                    event.setTitle(updatedEvent.getTitle());
-                    event.setDescription(updatedEvent.getDescription());
-                    event.setEventDate(updatedEvent.getEventDate());
-                    // set other fields as necessary
-                    return eventRepository.save(event);
+                .map(existingEvent -> {
+                    existingEvent.setTitle(eventDetails.getTitle());
+                    existingEvent.setDescription(eventDetails.getDescription());
+                    existingEvent.setEventDate(eventDetails.getEventDate());
+                    existingEvent.setSpeaker(eventDetails.getSpeaker());
+                    existingEvent.setSignificance(eventDetails.getSignificance());
+                    existingEvent.setCoverage(eventDetails.getCoverage());
+                    existingEvent.setLocation(eventDetails.getLocation());
+                    Event updatedEvent = eventRepository.save(existingEvent);
+                    logger.info("Updated event with id: {}", updatedEvent.getId());
+                    return updatedEvent;
                 })
-                .orElseThrow(() -> new RuntimeException("Event not found with id " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
     }
 
-    public List<Event> getEventsForCurrentWeek() {
-        LocalDateTime startOfWeek = getStartOfWeek();
-        LocalDateTime endOfWeek = getEndOfWeek();
-        return eventRepository.findByEventDateBetween(startOfWeek, endOfWeek);
+    public void deleteEvent(String id) {
+        logger.info("Deleting event with id: {}", id);
+        eventRepository.deleteById(id);
+        logger.info("Deleted event with id: {}", id);
     }
 
-    private LocalDateTime getStartOfWeek() {
-        LocalDate today = LocalDate.now();
-        return today.with(DayOfWeek.MONDAY).atStartOfDay();
+    public List<Event> getEventsBetweenDates(LocalDateTime start, LocalDateTime end) {
+        logger.info("Fetching events between {} and {}", start, end);
+        return eventRepository.findByEventDateBetween(start, end);
     }
 
-    private LocalDateTime getEndOfWeek() {
-        LocalDate today = LocalDate.now();
-        return today.with(DayOfWeek.SUNDAY).atTime(23, 59, 59);
+    public List<Event> getEventsByPublisher(String publisherId) {
+        logger.info("Fetching events for publisher: {}", publisherId);
+        return eventRepository.findByPublisherId(publisherId);
     }
 
-    public byte[] getEventsPdf(LocalDate startDate, LocalDate endDate) throws IOException {
-        List<Event> events = eventRepository.findByEventDateBetween(
-                startDate.atStartOfDay(), endDate.atTime(23, 59, 59));
-        return generatePdfFromEvents(events);
+    public List<Event> getEventsByLocation(Location location) {
+        logger.info("Fetching events for location: {}", location);
+        return eventRepository.findByLocation(location);
     }
 
-    private byte[] generatePdfFromEvents(List<Event> events) throws IOException {
-        Document document = new Document();
-        try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
-            PdfWriter.getInstance(document, byteArrayOutputStream);
-            document.open();
+    public List<Event> getUpcomingEvents() {
+        logger.info("Fetching upcoming events");
+        LocalDateTime now = LocalDateTime.now();
+        return eventRepository.findByEventDateAfterOrderByEventDateAsc(now);
+    }
 
-            for (Event event : events) {
-                document.add(new Paragraph("Event Title: " + event.getTitle()));
-                document.add(new Paragraph("Description: " + event.getDescription()));
-                document.add(new Paragraph("Date: " + event.getEventDate()));
-                document.add(new Paragraph("\n")); // Adds a space between events
-            }
-
-            document.close();
-            return byteArrayOutputStream.toByteArray();
-        } catch (DocumentException e) {
-            throw new RuntimeException("Error in PDF generation", e);
-        }
+    public List<Event> getPastEvents() {
+        logger.info("Fetching past events");
+        LocalDateTime now = LocalDateTime.now();
+        return eventRepository.findByEventDateBeforeOrderByEventDateDesc(now);
     }
 }

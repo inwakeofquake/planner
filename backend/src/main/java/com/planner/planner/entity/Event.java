@@ -1,19 +1,17 @@
 package com.planner.planner.entity;
 
 import com.planner.planner.enums.Coverage;
+import com.planner.planner.enums.Location;
 import com.planner.planner.enums.Significance;
-import jakarta.persistence.*;
-
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
 
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Past;
-import javax.validation.constraints.Size;
-import javax.xml.stream.Location;
+import javax.validation.constraints.*;
 import java.time.LocalDateTime;
 
-
-@Entity
+@Document(collection = "events")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -21,37 +19,35 @@ import java.time.LocalDateTime;
 public class Event {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @OneToOne
-    @JoinColumn(name = "publisher_id", referencedColumnName = "id")
-    @NotNull
-    private User publisher;
+    @NotBlank(message = "Publisher ID is required")
+    private String publisherId;
 
-    @NotNull
-    @ManyToOne(cascade = {CascadeType.ALL})
-    @JoinColumn(name = "location_id", referencedColumnName = "id")
+    @NotNull(message = "Location is required")
     private Location location;
 
+    @CreatedDate
     private LocalDateTime publishedOn;
 
-    @Past
+    @NotNull(message = "Event date is required")
+    @Future(message = "Event date must be in the future")
     private LocalDateTime eventDate;
 
-    @NotNull
-    @Size(min = 100, max = 255)
+    @NotBlank(message = "Title is required")
+    @Size(min = 5, max = 100, message = "Title must be between 5 and 100 characters")
     private String title;
 
-    @NotNull
-    @Size(min = 255, max = 2500)
+    @NotBlank(message = "Description is required")
+    @Size(min = 10, max = 1000, message = "Description must be between 10 and 1000 characters")
     private String description;
 
+    @Size(max = 100, message = "Speaker name cannot exceed 100 characters")
     private String speaker;
 
-    @Enumerated(EnumType.STRING)
+    @NotNull(message = "Significance is required")
     private Significance significance;
 
-    @Enumerated(EnumType.STRING)
+    @NotNull(message = "Coverage is required")
     private Coverage coverage;
 }

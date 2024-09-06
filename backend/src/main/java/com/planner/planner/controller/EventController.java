@@ -1,47 +1,74 @@
 package com.planner.planner.controller;
 
 import com.planner.planner.entity.Event;
+import com.planner.planner.enums.Location;
+import com.planner.planner.exception.ResourceNotFoundException;
 import com.planner.planner.service.EventService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
-import java.time.LocalDate;
+import javax.validation.Valid;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/events")
 public class EventController {
 
+    private final EventService eventService;
+
     @Autowired
-    private EventService eventService;
+    public EventController(EventService eventService) {
+        this.eventService = eventService;
+    }
+
+    @GetMapping
+    public List<Event> getAllEvents() {
+        return eventService.getAllEvents();
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Event> getEventById(@PathVariable String id) {
+        return eventService.getEventById(id)
+                .map(ResponseEntity::ok)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
+    }
 
     @PostMapping
-    public ResponseEntity<Event> createEvent(@RequestBody Event event) {
-        return ResponseEntity.ok(eventService.createEvent(event));
+    public ResponseEntity<Event> createEvent(@Valid @RequestBody Event event) {
+        Event createdEvent = eventService.createEvent(event);
+        return new ResponseEntity<>(createdEvent, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Event> updateEvent(@PathVariable Long id, @RequestBody Event event) {
-        return ResponseEntity.ok(eventService.updateEvent(id, event));
+    public ResponseEntity<Event> updateEvent(@PathVariable String id, @Valid @RequestBody Event eventDetails) {
+        Event updatedEvent = eventService.updateEvent(id, eventDetails);
+        return ResponseEntity.ok(updatedEvent);
     }
 
-    @GetMapping("/current-week")
-    public ResponseEntity<List<Event>> getEventsForCurrentWeek() {
-        return ResponseEntity.ok(eventService.getEventsForCurrentWeek());
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteEvent(@PathVariable String id) {
+        eventService.deleteEvent(id);
+        return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/download")
-    public ResponseEntity<byte[]> downloadEvents(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) throws IOException {
+    @GetMapping("/between")
+    public List<Event> getEventsBetweenDates(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
+        return eventService.getEventsBetweenDates(start, end);
+    }
 
-        byte[] pdfContent = eventService.getEventsPdf(startDate, endDate);
-        return ResponseEntity.ok()
-                .header("Content-Type", "application/pdf")
-                .header("Content-Disposition", "attachment; filename=\"events.pdf\"")
-                .body(pdfContent);
+    @GetMapping("/publisher/{publisherId}")
+    public List<Event> getEventsByPublisher(@PathVariable String publisherId) {
+        return eventService.getEventsByPublisher(publisherId);
+    }
+
+    @GetMapping("/location/{location}")
+    public List<Event> getEventsByLocation(@PathVariable Location location) {
+        return eventService.getEventsByLocation(location);
     }
 }
